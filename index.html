@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>留学FAQボット</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 20px; }
+    .chat-container { border: 1px solid #ccc; padding: 15px; height: 300px; overflow-y: auto; margin-bottom: 10px; background: #f9f9f9; }
+    .message { margin: 10px 0; padding: 10px; border-radius: 8px; max-width: 75%; }
+    .user-message { background: #e0f7fa; margin-left: auto; }
+    .bot-message { background: #eeeeee; margin-right: auto; }
+    .input-box { display: flex; }
+    input { flex: 1; padding: 10px; font-size: 16px; }
+    button { padding: 10px; background: #4CAF50; color: white; border: none; }
+  </style>
+</head>
+<body>
+  <h1>留学FAQボット</h1>
+  <div class="chat-container" id="chat"></div>
+  <div class="input-box">
+    <input id="userInput" placeholder="質問を入力..." />
+    <button onclick="sendMessage()">送信</button>
+  </div>
+
+  <script>
+    let faqData = [];
+
+    function normalizeText(text) {
+      return text.toLowerCase()
+        .replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+        .replace(/\s+/g, '')
+        .replace(/[ぁ-ん]/g, ch => String.fromCharCode(ch.charCodeAt(0) + 0x60))
+        .trim();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const stored = localStorage.getItem("faqBotData");
+      if (stored) {
+        try {
+          faqData = JSON.parse(stored);
+        } catch {
+          faqData = [];
+        }
+      }
+    });
+
+    function sendMessage() {
+      const input = document.getElementById("userInput");
+      const chat = document.getElementById("chat");
+      const query = input.value.trim();
+      if (!query) return;
+
+      const userDiv = document.createElement("div");
+      userDiv.className = "message user-message";
+      userDiv.textContent = query;
+      chat.appendChild(userDiv);
+
+      const normQuery = normalizeText(query);
+      let answer = "すみません、その質問にはまだ対応していません。";
+
+      for (let item of faqData) {
+        for (let kw of item.keywords || []) {
+          if (normalizeText(kw).includes(normQuery) || normQuery.includes(normalizeText(kw))) {
+            answer = item.answer;
+            break;
+          }
+        }
+        if (normalizeText(item.question).includes(normQuery)) {
+          answer = item.answer;
+          break;
+        }
+      }
+
+      const botDiv = document.createElement("div");
+      botDiv.className = "message bot-message";
+      botDiv.textContent = answer;
+      chat.appendChild(botDiv);
+
+      chat.scrollTop = chat.scrollHeight;
+      input.value = '';
+    }
+
+    document.getElementById("userInput").addEventListener("keypress", e => {
+      if (e.key === "Enter") sendMessage();
+    });
+  </script>
+</body>
+</html>
